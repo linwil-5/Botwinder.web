@@ -59,8 +59,7 @@ export default {
             return this.state.publicGroups;
         },
         sortedPublicGroups() {
-            return this.publicGroups;
-            let groups = this.publicGroups;
+            let groups = [...this.publicGroups];
             return groups.sort((a, b) => {
                 return a.id - b.id;
             });
