@@ -1,6 +1,6 @@
 <?php
 
-namespace App;
+namespace Botwinder;
 
 use Illuminate\Database\Eloquent\Model;
 
@@ -16,11 +16,35 @@ class ServerConfig extends Model
         'localisation_id'
     ];
 
+    protected $casts = [
+        'serverid' => 'string',
+        'operator_roleid' => 'string',
+        'mute_roleid' => 'string',
+        'mute_ignore_channelid' => 'string',
+        'voice_channelid' => 'string',
+        'activity_channelid' => 'string',
+        'log_channelid' => 'string',
+        'mod_channelid' => 'string',
+        'embed_voicechannel' => 'string',
+        'embed_activitychannel' => 'string',
+        'embed_logchannel' => 'string',
+        'embed_modchannel' => 'string',
+        'color_voicechannel' => 'string',
+        'color_activitychannel' => 'string',
+        'color_logchannel' => 'string',
+        'color_modchannel' => 'string',
+        'welcome_roleid' => 'string',
+        'verify_roleid' => 'string',
+        'base_exp_to_levelup' => 'string',
+        'exp_per_message' => 'string',
+        'exp_per_attachment' => 'string',
+    ];
+
     public function getAttributeValue($key)
     {
         $value = $this->getAttributeFromArray($key);
         if ($this->isColorAttribute($key)) {
-            return "#".str_pad(dechex($value), 6, "0", STR_PAD_LEFT);
+            return "#" . str_pad(dechex($value), 6, "0", STR_PAD_LEFT);
         }
 
         return parent::getAttributeValue($key);
@@ -35,33 +59,24 @@ class ServerConfig extends Model
         return $parent;
     }
 
-    protected function isColorAttribute($key) {
+    protected function isColorAttribute($key)
+    {
         return preg_match('/^color_/', $key);
     }
 
-    public function custom_commands()
+    public function customCommands()
     {
-        return $this->hasMany('App\CustomCommands');
+        return $this->hasMany('Botwinder\CustomCommand');
     }
 
     public function channels()
     {
-        return $this->hasMany('App\Channels');
+        return $this->hasMany('Botwinder\Channel');
     }
 
     public function roles()
     {
-        return $this->hasMany('App\Roles');
-    }
-
-    public function profile_options()
-    {
-        return $this->hasMany('App\ProfileOptions');
-    }
-
-    public function role_groups()
-    {
-        return $this->hasMany('App\RoleGroups');
+        return $this->hasMany('Botwinder\Role');
     }
 
     /**
@@ -78,9 +93,9 @@ class ServerConfig extends Model
         if (!is_array($commands) && count($commands) == 0) {
             return false;
         }
-        $this->custom_commands()->whereNotIn('commandid', $commands)->delete();
+        $this->customCommands()->whereNotIn('commandid', $commands)->delete();
         foreach ($commands as $command) {
-            $this->custom_commands()->updateOrInsert(
+            $this->customCommands()->updateOrInsert(
                 [
                     'serverid' => $this->serverid,
                     'commandid' => $command['commandid']
@@ -97,10 +112,9 @@ class ServerConfig extends Model
         $commandKeys = array_column($channels, 'channelid');
         $deleteChannels = $this->channels()->whereNotIn('channelid', $commandKeys);
         if ($deleteChannels->count() > 0) {
-            $deleteChannels->update(['ignored' => 0]);
+            $deleteChannels->delete();
         }
         foreach ($channels as $channel) {
-            //$this->channels()->updateOrCreate($channel);
             $this->channels()->updateOrCreate(['channelid' => $channel['channelid']], $channel);
         }
         return true;
@@ -122,35 +136,21 @@ class ServerConfig extends Model
         return true;
     }
 
-    public function updateProfileOptions($profile_options)
+    public function createNew($id)
     {
-        if (!is_array($profile_options) && count($profile_options) == 0) {
-            return false;
-        }
-        $commandKeys = array_column($profile_options, 'option');
-        $toBeDeleted = $this->profile_options()->whereNotIn('option', $commandKeys);
-        if ($toBeDeleted->count() > 0) {
-            $toBeDeleted->delete();
-        }
-        foreach ($profile_options as $profile_option) {
-            $this->profile_options()->updateOrCreate(['option' => $profile_option['option']], $profile_option);
-        }
-        return true;
+        return new ServerConfig($id);
     }
 
-    public function updateRoleGroups($role_groups)
+    public function jsonSerializeApi()
     {
-        if (!is_array($role_groups) && count($role_groups) == 0) {
-            return false;
+        $this->roles = $this->roles()->get()->jsonSerialize();
+        $this->channels = $this->channels()->get()->jsonSerialize();
+        foreach ($this->guarded as $guard) {
+            unset($this->{$guard});
+
         }
-        $commandKeys = array_column($role_groups, 'groupid');
-        $toBeDeleted = $this->role_groups()->whereNotIn('groupid', $commandKeys);
-        if ($toBeDeleted->count() > 0) {
-            $toBeDeleted->delete();
-        }
-        foreach ($role_groups as $role_group) {
-            $this->role_groups()->updateOrCreate(['groupid' => $role_group['groupid']], $role_group);
-        }
-        return true;
+        return parent::jsonSerialize(); // TODO: Change the autogenerated stub
     }
+
+
 }
