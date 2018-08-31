@@ -5,7 +5,10 @@ language: php
 
 php:
   - '7.1'
-  
+
+notifications:
+  email: false
+
 before_script:
   - cd www
   - cp .env.example .env
@@ -16,7 +19,7 @@ before_script:
   - nvm install 7.7.1
   - npm install npm@latest -g
   - npm install
-  
+
 script:
   - vendor/bin/phpunit --coverage-text
   - npm run test
